@@ -1,8 +1,16 @@
 import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { sumProducts } from 'src/app/utils/sum-products';
-import { Product } from '../product.model';
 import { ProductsService } from '../products.service';
+import {
+  ProductsApiAction,
+  ProductsPageActions,
+} from '../state/products.actions';
+import {
+  selectProducts,
+  selectProductsLoading,
+  selectProductsShowProductCode,
+  selectProductsTotal,
+} from '../state/products.selector';
 
 @Component({
   selector: 'app-products-page',
@@ -10,33 +18,28 @@ import { ProductsService } from '../products.service';
   styleUrls: ['./products-page.component.css'],
 })
 export class ProductsPageComponent {
-  products: Product[] = [];
-  total = 0;
-  loading = true;
-  showProductCode$ = this.store.select(
-    (state: any) => state.products.showProductCode
-  );
-  errorMessage = '';
+  products$ = this.store.select(selectProducts);
+  total$ = this.store.select(selectProductsTotal);
+  loading$ = this.store.select(selectProductsLoading);
+  showProductCode$ = this.store.select(selectProductsShowProductCode);
+  errorMessage = ''
 
   constructor(private productsService: ProductsService, private store: Store) {}
 
   ngOnInit() {
     this.getProducts();
-    this.store.subscribe((state) => console.log({ state }));
   }
 
   getProducts() {
-    this.productsService.getAll().subscribe({
-      next: (products) => {
-        this.products = products;
-        this.total = sumProducts(products);
-        this.loading = false;
-      },
-      error: (error) => (this.errorMessage = error),
+    this.store.dispatch(ProductsPageActions.loadProducts());
+    this.productsService.getAll().subscribe((products) => {
+      this.store.dispatch(
+        ProductsApiAction.productsLoadedSuccess({ products })
+      );
     });
   }
 
   toggleShowProductCode() {
-    this.store.dispatch({ type: '[Products Page] Toggle Show Product Code' });
+    this.store.dispatch(ProductsPageActions.toggleShowProductCode());
   }
 }
